@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Malik Beasleys Basement Picks</title>
+<meta name="description" content="Place your bets. FAAB points on the line. Please be as brutal as you need to the Lamas.">
+<style>
+  :root{ --bg:#0c0c12; --card:#161622; --accent:#35d07f; --muted:#9aa3b2; --text:#e9ecf2; --warn:#ff6b6b; }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial; background:linear-gradient(180deg,#0c0c12 0%,#0f1320 100%); color:var(--text);}
+  header{display:flex; gap:18px; align-items:center; padding:20px 16px 8px; max-width:1100px; margin:0 auto;}
+  header img{width:90px; height:90px; object-fit:cover; border-radius:12px; border:2px solid #2a2f45; box-shadow:0 6px 18px rgba(0,0,0,.35)}
+  header h1{margin:0; font-size:28px; letter-spacing:.2px}
+  header p{margin:4px 0 0; color:var(--muted)}
+  .wrap{max-width:1100px; margin:0 auto; padding:8px 16px 60px;}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0 18px}
+  .toolbar label{display:flex; gap:6px; align-items:center}
+  .toolbar select, .toolbar input, .toolbar button{
+    background:var(--card); color:var(--text); border:1px solid #2a2f45; border-radius:10px; padding:10px 12px; font-size:14px;
+  }
+  .toolbar input[type="text"]{min-width:260px}
+  .toolbar button{cursor:pointer}
+  .grid{display:grid; grid-template-columns:repeat(12, 1fr); gap:10px; align-items:center; background:var(--card);
+        padding:12px; border-radius:14px; border:1px solid #22263a; margin-bottom:10px;}
+  .grid .label{grid-column:span 3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .grid .vs{grid-column:span 3; color:var(--muted)}
+  .grid select{grid-column:span 3}
+  .grid .score{grid-column:span 2; display:flex; gap:6px; align-items:center}
+  .grid .score input{
+    width:48px; text-align:center; padding:8px; border-radius:8px; border:1px solid #2a2f45; background:#101423; color:var(--text);
+  }
+  .grid .msg{grid-column:1 / -1; color:var(--warn); font-size:12px; display:none}
+  .grid.invalid .msg{display:block}
+  h2{margin:20px 0 10px; font-size:18px; color:#cdd5e1}
+  footer{position:fixed; inset:auto 0 0 0; background:rgba(12,12,18,.8); backdrop-filter:blur(6px); border-top:1px solid #22263a; padding:10px 16px;}
+  footer .row{max-width:1100px; margin:0 auto; display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+  footer button{background:var(--accent); color:#0a0f14; border:none; padding:10px 14px; border-radius:10px; font-weight:600; cursor:pointer}
+  .hint{color:var(--muted); font-size:13px}
+  .pill{display:inline-block; padding:2px 8px; border-radius:999px; background:#1d2336; border:1px solid #2a2f45; color:#cbd5e1; font-size:12px; margin-left:6px}
+  a{color:#9bd4ff}
+</style>
+</head>
+<body>
+  <header>
+    <!-- Put MB.jpg in the same folder as this file -->
+    <img src="MB.jpg" alt="Malik Beasley" onerror="this.style.display='none'">
+    <div>
+      <h1>Malik Beasleys Basement Picks</h1>
+      <p>Place your bets. FAAB points on the line. Please be as brutal as you need to the Lamas.</p>
+      <div class="hint">Predict winners + scorelines (default total categories: <span id="catCount" class="pill">9</span>)</div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div class="toolbar">
+      <label>Your Name / Team:
+        <input id="userName" type="text" placeholder="e.g. Ben Rogers or Smelly Lamas" required>
+      </label>
+      <label>Round:
+        <select id="roundSelect"></select>
+      </label>
+      <label class="hint">Categories:
+        <input id="totalCats" type="number" min="1" max="20" value="9" title="Total categories in a matchup (e.g., 9)">
+      </label>
+      <button id="saveBtn" title="Save to this browser">Save Picks</button>
+      <button id="exportBtn" title="Download a CSV">Export CSV</button>
+      <button id="sendSheetsBtn" title="Send to Google Sheets">Submit to Google Sheets</button>
+      <span class="hint">Your data stays in your browser unless you export or submit.</span>
+    </div>
+
+    <div id="matchups"></div>
+  </div>
+
+  <footer>
+    <div class="row">
+      <span class="hint">Hosting tip: commit this file (and MB.jpg) to a public GitHub repo and enable GitHub Pages (Settings → Pages → “Deploy from a branch”).</span>
+    </div>
+  </footer>
+
+<script>
+/* ===== CONFIG ===== */
+const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwe5XeXNxPTkRkQFZIk136Cccb_XwuWRbxm63tE6end8HnzAiRLypoR5djyejS9InGZbA/exec";
+const STORAGE_KEY = "mbb-picks-v2";
+let TOTAL_CATS = 9;
+
+/* ===== SCHEDULE (Rounds 1–18) ===== */
+const schedule = [
+  { round: 1,  games: [
+    ["Tingus Pingus","Launceston Pasty Bois"],
+    ["Premium Tyrese’s Pieces","The Dell-Apacas"],
+    ["Tyrese’s Pieces","The Delly Lamas"],
+    ["Balling Harri","Bilwaukee Mucks"],
+    ["Chris Kaman’s Hospital","Sportsbet Punters"],
+    ["Sir This is a Wemby’s","ash’s Crazy Team"],
+  ]},
+  { round: 2,  games: [
+    ["Tingus Pingus","The Dell-Apacas"],
+    ["Launceston Pasty Bois","The Delly Lamas"],
+    ["Premium Tyrese’s Pieces","Bilwaukee Mucks"],
+    ["Tyrese’s Pieces","Sportsbet Punters"],
+    ["Balling Harri","ash’s Crazy Team"],
+    ["Chris Kaman’s Hospital","Sir This is a Wemby’s"],
+  ]},
+  { round: 3, label:"RIVALRY WEEK", games: [
+    ["Tingus Pingus","The Delly Lamas"],
+    ["The Dell-Apacas","Bilwaukee Mucks"],
+    ["Launceston Pasty Bois","Sportsbet Punters"],
+    ["Premium Tyrese’s Pieces","ash’s Crazy Team"],
+    ["Tyrese’s Pieces","Sir This is a Wemby’s"],
+    ["Balling Harri","Chris Kaman’s Hospital"],
+  ]},
+  { round: 4,  games: [
+    ["Tingus Pingus","Bilwaukee Mucks"],
+    ["The Delly Lamas","Sportsbet Punters"],
+    ["The Dell-Apacas","ash’s Crazy Team"],
+    ["Launceston Pasty Bois","Sir This is a Wemby’s"],
+    ["Premium Tyrese’s Pieces","Chris Kaman’s Hospital"],
+    ["Tyrese’s Pieces","Balling Harri"],
+  ]},
+  { round: 5,  games: [
+    ["Tingus Pingus","Sportsbet Punters"],
+    ["Bilwaukee Mucks","ash’s Crazy Team"],
+    ["The Delly Lamas","Sir This is a Wemby’s"],
+    ["The Dell-Apacas","Chris Kaman’s Hospital"],
+    ["Launceston Pasty Bois","Balling Harri"],
+    ["Premium Tyrese’s Pieces","Tyrese’s Pieces"],
+  ]},
+  { round: 6,  games: [
+    ["Tingus Pingus","ash’s Crazy Team"],
+    ["Sportsbet Punters","Sir This is a Wemby’s"],
+    ["Bilwaukee Mucks","Chris Kaman’s Hospital"],
+    ["The Delly Lamas","Balling Harri"],
+    ["The Dell-Apacas","Tyrese’s Pieces"],
+    ["Launceston Pasty Bois","Premium Tyrese’s Pieces"],
+  ]},
+  { round: 7,  games: [
+    ["Tingus Pingus","Sir This is a Wemby’s"],
+    ["ash’s Crazy Team","Chris Kaman’s Hospital"],
+    ["Sportsbet Punters","Balling Harri"],
+    ["Bilwaukee Mucks","Tyrese’s Pieces"],
+    ["The Delly Lamas","Premium Tyrese’s Pieces"],
+    ["The Dell-Apacas","Launceston Pasty Bois"],
+  ]},
+  { round: 8,  games: [
+    ["Tingus Pingus","Chris Kaman’s Hospital"],
+    ["Sir This is a Wemby’s","Balling Harri"],
+    ["ash’s Crazy Team","Tyrese’s Pieces"],
+    ["Sportsbet Punters","Premium Tyrese’s Pieces"],
+    ["Bilwaukee Mucks","Launceston Pasty Bois"],
+    ["The Delly Lamas","The Dell-Apacas"],
+  ]},
+  { round: 9,  games: [
+    ["Tingus Pingus","Balling Harri"],
+    ["Chris Kaman’s Hospital","Tyrese’s Pieces"],
+    ["Sir This is a Wemby’s","Premium Tyrese’s Pieces"],
+    ["ash’s Crazy Team","Launceston Pasty Bois"],
+    ["Sportsbet Punters","The Dell-Apacas"],
+    ["Bilwaukee Mucks","The Delly Lamas"],
+  ]},
+  { round:10, games: [
+    ["Tingus Pingus","Tyrese’s Pieces"],
+    ["Balling Harri","Premium Tyrese’s Pieces"],
+    ["Chris Kaman’s Hospital","Launceston Pasty Bois"],
+    ["Sir This is a Wemby’s","The Dell-Apacas"],
+    ["ash’s Crazy Team","The Delly Lamas"],
+    ["Sportsbet Punters","Bilwaukee Mucks"],
+  ]},
+  { round:11, games: [
+    ["Tingus Pingus","Premium Tyrese’s Pieces"],
+    ["Tyrese’s Pieces","Launceston Pasty Bois"],
+    ["Balling Harri","The Dell-Apacas"],
+    ["Chris Kaman’s Hospital","The Delly Lamas"],
+    ["Sir This is a Wemby’s","Bilwaukee Mucks"],
+    ["ash’s Crazy Team","Sportsbet Punters"],
+  ]},
+  { round:12, games: [
+    ["Tingus Pingus","Launceston Pasty Bois"],
+    ["Premium Tyrese’s Pieces","The Dell-Apacas"],
+    ["Tyrese’s Pieces","The Delly Lamas"],
+    ["Balling Harri","Bilwaukee Mucks"],
+    ["Chris Kaman’s Hospital","Sportsbet Punters"],
+    ["Sir This is a Wemby’s","ash’s Crazy Team"],
+  ]},
+  { round:13, games: [
+    ["Tingus Pingus","The Dell-Apacas"],
+    ["Launceston Pasty Bois","The Delly Lamas"],
+    ["Premium Tyrese’s Pieces","Bilwaukee Mucks"],
+    ["Tyrese’s Pieces","Sportsbet Punters"],
+    ["Balling Harri","ash’s Crazy Team"],
+    ["Chris Kaman’s Hospital","Sir This is a Wemby’s"],
+  ]},
+  { round:14, games: [
+    ["Tingus Pingus","The Delly Lamas"],
+    ["The Dell-Apacas","Bilwaukee Mucks"],
+    ["Launceston Pasty Bois","Sportsbet Punters"],
+    ["Premium Tyrese’s Pieces","ash’s Crazy Team"],
+    ["Tyrese’s Pieces","Sir This is a Wemby’s"],
+    ["Balling Harri","Chris Kaman’s Hospital"],
+  ]},
+  { round:15, games: [
+    ["Tingus Pingus","Bilwaukee Mucks"],
+    ["The Delly Lamas","Sportsbet Punters"],
+    ["The Dell-Apacas","ash’s Crazy Team"],
+    ["Launceston Pasty Bois","Sir This is a Wemby’s"],
+    ["Premium Tyrese’s Pieces","Chris Kaman’s Hospital"],
+    ["Tyrese’s Pieces","Balling Harri"],
+  ]},
+  { round:16, games: [
+    ["Tingus Pingus","Sportsbet Punters"],
+    ["Bilwaukee Mucks","ash’s Crazy Team"],
+    ["The Delly Lamas","Sir This is a Wemby’s"],
+    ["The Dell-Apacas","Chris Kaman’s Hospital"],
+    ["Launceston Pasty Bois","Balling Harri"],
+    ["Premium Tyrese’s Pieces","Tyrese’s Pieces"],
+  ]},
+  { round:17, games: [
+    ["Tingus Pingus","ash’s Crazy Team"],
+    ["Sportsbet Punters","Sir This is a Wemby’s"],
+    ["Bilwaukee Mucks","Chris Kaman’s Hospital"],
+    ["The Delly Lamas","Balling Harri"],
+    ["The Dell-Apacas","Tyrese’s Pieces"],
+    ["Launceston Pasty Bois","Premium Tyrese’s Pieces"],
+  ]},
+  { round:18, games: [
+    ["Tingus Pingus","Sir This is a Wemby’s"],
+    ["ash’s Crazy Team","Chris Kaman’s Hospital"],
+    ["Sportsbet Punters","Balling Harri"],
+    ["Bilwaukee Mucks","Tyrese’s Pieces"],
+    ["The Delly Lamas","Premium Tyrese’s Pieces"],
+    ["The Dell-Apacas","Launceston Pasty Bois"],
+  ]},
+];
+
+/* ===== ELEMENTS ===== */
+const roundSelect = document.getElementById("roundSelect");
+const matchupsEl  = document.getElementById("matchups");
+const totalCatsEl = document.getElementById("totalCats");
+const catCountEl  = document.getElementById("catCount");
+const userNameEl  = document.getElementById("userName");
+
+/* populate rounds */
+schedule.forEach(r => {
+  const opt = document.createElement("option");
+  opt.value = r.round;
+  opt.textContent = r.label ? `Round ${r.round} — ${r.label}` : `Round ${r.round}`;
+  roundSelect.appendChild(opt);
+});
+roundSelect.value = 1;
+
+/* LocalStorage helpers */
+function loadSaved(){ try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||"{}"); } catch { return {}; } }
+function save(data){ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function teamsInRound(r){ return schedule.find(x => x.round === Number(r)); }
+
+/* render matchups */
+function render(){
+  matchupsEl.innerHTML = "";
+  const saved = loadSaved();
+
+  // restore remembered name and category total
+  userNameEl.value = saved.__user || "";
+  if(saved.__totalCats){ TOTAL_CATS = saved.__totalCats; totalCatsEl.value = TOTAL_CATS; }
+  catCountEl.textContent = TOTAL_CATS;
+
+  const current = teamsInRound(roundSelect.value);
+  current.games.forEach((g, idx) => {
+    const [home, away] = g;
+    const id = `r${current.round}m${idx}`;
+    const row = document.createElement("div");
+    row.className = "grid";
+    row.dataset.id = id;
+
+    const lab = document.createElement("div"); lab.className = "label"; lab.textContent = home;
+    const vs  = document.createElement("div"); vs.className  = "vs"; vs.textContent = "vs " + away;
+
+    const pick = document.createElement("select");
+    pick.innerHTML = `<option value="">Pick winner…</option><option>${home}</option><option>${away}</option>`;
+
+    const scoreBox = document.createElement("div"); scoreBox.className = "score";
+    const s1 = document.createElement("input"); s1.type="number"; s1.min=0; s1.max=20; s1.placeholder="W";
+    const s2 = document.createElement("input"); s2.type="number"; s2.min=0; s2.max=20; s2.placeholder="L";
+    const dash = document.createElement("span"); dash.textContent = "-";
+    scoreBox.append(s1,dash,s2);
+
+    const msg = document.createElement("div"); msg.className="msg"; msg.textContent = `Score must add to ${TOTAL_CATS}.`;
+
+    // restore row values
+    if(saved[id]){
+      pick.value = saved[id].winner || "";
+      if(saved[id].w != null) s1.value = saved[id].w;
+      if(saved[id].l != null) s2.value = saved[id].l;
+    }
+
+    function validate(){
+      const a = Number(s1.value||0), b = Number(s2.value||0);
+      if((a+b) !== TOTAL_CATS){ row.classList.add("invalid"); return false; }
+      row.classList.remove("invalid"); return true;
+    }
+    [s1,s2].forEach(el => el.addEventListener("input", validate));
+
+    row.append(lab,vs,pick,scoreBox,msg);
+    matchupsEl.appendChild(row);
+  });
+}
+
+/* events */
+roundSelect.addEventListener("change", render);
+totalCatsEl.addEventListener("input", () => {
+  TOTAL_CATS = Math.max(1, Math.min(20, Number(totalCatsEl.value||9)));
+  catCountEl.textContent = TOTAL_CATS;
+  const data = loadSaved(); data.__totalCats = TOTAL_CATS; save(data);
+  render();
+});
+
+/* Save locally */
+document.getElementById("saveBtn").addEventListener("click", () => {
+  const data = loadSaved();
+  data.__user = userNameEl.value.trim();
+  data.__totalCats = TOTAL_CATS;
+
+  const r = teamsInRound(roundSelect.value);
+  document.querySelectorAll(".grid").forEach((row, idx) => {
+    const id = row.dataset.id;
+    const [home, away] = r.games[idx];
+    const pick = row.querySelector("select").value;
+    const w = Number(row.querySelectorAll('input')[0].value || 0);
+    const l = Number(row.querySelectorAll('input')[1].value || 0);
+    data[id] = { round: r.round, home, away, winner: pick, w, l, totalCats: TOTAL_CATS, user: data.__user, savedAt: new Date().toISOString() };
+  });
+  save(data);
+  alert("Saved locally ✅");
+});
+
+/* Export CSV */
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const data = loadSaved();
+  const r = teamsInRound(roundSelect.value);
+  const user = userNameEl.value.trim() || data.__user || "Anonymous";
+  const rows = [["user","round","matchup","winner","score","totalCats","savedAt"]];
+  r.games.forEach((g, idx) => {
+    const id = `r${r.round}m${idx}`;
+    const pick = data[id]?.winner || "";
+    const w = data[id]?.w ?? "";
+    const l = data[id]?.l ?? "";
+    rows.push([user, r.round, `${g[0]} vs ${g[1]}`, pick, (w!==""&&l!=="")?`${w}-${l}`:"", data[id]?.totalCats ?? TOTAL_CATS, data[id]?.savedAt ?? ""]);
+  });
+  const csv = rows.map(x => x.map(v => `"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], {type:"text/csv"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `basement-picks-${user.replace(/\s+/g,'_')}-round-${roundSelect.value}.csv`;
+  a.click();
+});
+
+/* Submit to Google Sheets (no-preflight) */
+document.getElementById("sendSheetsBtn").addEventListener("click", async () => {
+  const user = userNameEl.value.trim();
+  if(!user){ alert("Please enter your Name/Team first."); return; }
+  if(!WEB_APP_URL){ alert("Add your Google Apps Script Web App URL in WEB_APP_URL first."); return; }
+
+  const r = teamsInRound(roundSelect.value);
+  const payload = [];
+  document.querySelectorAll(".grid").forEach((row, idx) => {
+    const [home, away] = r.games[idx];
+    const winner = row.querySelector("select").value;
+    const w = row.querySelectorAll("input")[0].value;
+    const l = row.querySelectorAll("input")[1].value;
+    payload.push({ user, round: r.round, home, away, winner, score:`${w}-${l}`, totalCats: TOTAL_CATS });
+  });
+
+  try {
+    const res = await fetch(WEB_APP_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // prevents CORS preflight
+      body: JSON.stringify({ entries: payload })
+    });
+    if (!res.ok) throw new Error(await res.text());
+    alert("Submitted to Google Sheets ✅");
+  } catch (e) {
+    alert("Submit failed: " + e.message);
+  }
+});
+
+/* init + remember name */
+(function init(){
+  const saved = loadSaved();
+  if(saved.__user){ userNameEl.value = saved.__user; }
+  render();
+})();
+</script>
+</body>
+</html>
